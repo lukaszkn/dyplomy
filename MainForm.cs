@@ -6,6 +6,7 @@ using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -71,20 +72,34 @@ namespace Dyplomy
                 if (split[0].Trim().Length == 0) continue;
                 if (split.Length > 1 && split[1].Trim().Contains("-")) continue;
 
-                if (checkBoxUniqueNames.Checked && uniqueNames.Contains(split[0])) continue;
+                string nazwa = split[0].Trim();
+                if (checkBoxRemoveNonLetters.Checked)
+                {
+                    nazwa = Regex.Replace(nazwa, @"[0-9\-/]", string.Empty).Trim();
+                }
 
-                string targetDir = directory + "\\" + split[0] + " " + info.Name + "___";
+                if (checkBoxUniqueNames.Checked && uniqueNames.Contains(nazwa)) continue;
+                uniqueNames.Add(nazwa);
+
+                string targetDir = directory + "\\" + nazwa + " " + info.Name + "___";
                 fastZip.ExtractZip(labelTemplate.Text, targetDir, null);
 
-                ReplaceTextInFolder(targetDir, "[nazwa]", split[0]);
+                if (checkBoxAddPanPani.Checked)
+                {
+                    string[] nazwaSplit = nazwa.Split(new char[] { ' ' });
+                    if (nazwaSplit[0].EndsWith("a"))
+                        nazwa = "Pani " + nazwa;
+                    else
+                        nazwa = "Pan " + nazwa;
+                }
+
+                ReplaceTextInFolder(targetDir, "[nazwa]", nazwa);
                 if (split.Length > 1)
                 {
                     ReplaceTextInFolder(targetDir, "[miejsce]", split[1]);
                 }
 
                 fastZip.CreateZip(targetDir.Replace("___", ""), targetDir, true, null);
-
-                uniqueNames.Add(split[0]);
 
                 dyplomyCount++;
 
@@ -93,7 +108,7 @@ namespace Dyplomy
                     Thread.Sleep(100);
                     Directory.Delete(targetDir, true);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }
